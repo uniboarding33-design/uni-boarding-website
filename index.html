@@ -222,7 +222,204 @@ function addContactLinks(ad,parent){const phone=cleanPhone(ad.phone),wa=cleanPho
 async function makeCard(ad){const card=document.createElement('article');card.className='card';card.dataset.location=(ad.location||'').toLowerCase();card.dataset.type=ad.roomType;card.dataset.price=ad.rent;
  if(ad.photoUrls[0]){const img=document.createElement('img');img.src=ad.photoUrls[0];img.alt='Boarding place';card.append(img)}else{const blank=document.createElement('div');blank.style.cssText='height:190px;background:#e8edf5;display:grid;place-items:center;color:#64748b';blank.textContent='No photo added';card.append(blank)}
  const c=document.createElement('div');c.className='card-content';c.innerHTML='<span class="badge">Approved Listing</span>';const h=document.createElement('h3');h.textContent=ad.place;const loc=document.createElement('p');loc.className='location';loc.textContent=ad.location;const desc=document.createElement('p');desc.textContent=ad.roomType+' · Vacancies: '+ad.vacancies;const price=document.createElement('div');price.className='price';price.textContent='Rs. '+Number(ad.rent).toLocaleString('en-LK')+' / month';const view=document.createElement('button');view.className='details';view.textContent='View Details';view.onclick=()=>showDetails(ad.id);c.append(h,loc,desc,price,view);card.append(c);$('listingCards').append(card)}
-async function showDetails(id){const ad=ads.find(x=>x.id===String(id)&&x.status==='approved');if(!ad)return;mediaUrls.forEach(URL.revokeObjectURL);mediaUrls=[];const root=$('detailContent');root.innerHTML='';const title=document.createElement('h1');title.textContent=ad.place;const loc=document.createElement('p');loc.className='location';loc.textContent='Location: '+ad.location;const gallery=document.createElement('div');gallery.className='media-grid';ad.photoUrls.forEach((url,i)=>{const img=document.createElement('img');img.src=url;img.alt='Boarding photo '+(i+1);gallery.append(img)});if(ad.videoUrl){const v=document.createElement('video');v.src=ad.videoUrl;v.controls=true;gallery.append(v)}const info=document.createElement('div');info.className='detail-info';const lines=[['Monthly Rent','Rs. '+Number(ad.rent).toLocaleString('en-LK')],['Room Type',ad.roomType],['Vacancies',ad.vacancies],['Landlord',ad.landlord],['Contact',ad.phone],['Location',ad.location]];lines.forEach(([k,v])=>{const p=document.createElement('p');p.textContent=k+': '+v;info.append(p)});const description=document.createElement('p');description.textContent=ad.description;info.append(description);addContactLinks(ad,info);if(ad.mapLink){const map=document.createElement('a');map.className='contact-link call-link';map.href=ad.mapLink;map.target='_blank';map.rel='noopener';map.textContent='Open location in Google Maps';info.append(map)}root.append(title,loc,gallery,info);$('home').hidden=true;$('postAd').hidden=true;$('adminSection').hidden=true;$('myAdsSection').hidden=true;$('find-boarding').hidden=true;$('detailPage').style.display='block';history.pushState({detail:id},'', '#details-'+id);window.scrollTo(0,0)}
+
+async function showDetails(id){
+    const ad=ads.find(x=>x.id===String(id)&&x.status==='approved');
+    if(!ad)return;
+
+    mediaUrls.forEach(URL.revokeObjectURL);
+    mediaUrls=[];
+
+    const root=$('detailContent');
+    root.innerHTML='';
+
+    const title=document.createElement('h1');
+    title.textContent=ad.place;
+
+    const loc=document.createElement('p');
+    loc.className='location';
+    loc.textContent='Location: '+ad.location;
+
+    const gallery=document.createElement('div');
+    gallery.className='media-grid';
+
+    // Photo Gallery
+    ad.photoUrls.forEach((url,i)=>{
+        const img=document.createElement('img');
+        img.src=url;
+        img.alt='Boarding photo '+(i+1);
+        img.style.cursor='pointer';
+
+        img.addEventListener('click',()=>{
+            let currentIndex=i;
+
+            const overlay=document.createElement('div');
+            overlay.style.cssText=`
+                position:fixed;
+                inset:0;
+                background:rgba(0,0,0,0.95);
+                z-index:99999;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                padding:20px;
+            `;
+
+            const bigImage=document.createElement('img');
+            bigImage.style.cssText=`
+                max-width:85%;
+                max-height:85%;
+                object-fit:contain;
+            `;
+
+            const close=document.createElement('button');
+            close.textContent='×';
+            close.style.cssText=`
+                position:absolute;
+                top:15px;
+                right:25px;
+                font-size:40px;
+                color:white;
+                background:none;
+                border:none;
+                cursor:pointer;
+            `;
+
+            const previous=document.createElement('button');
+            previous.textContent='❮';
+            previous.style.cssText=`
+                position:absolute;
+                left:15px;
+                top:50%;
+                font-size:30px;
+                color:white;
+                background:none;
+                border:none;
+                cursor:pointer;
+            `;
+
+            const next=document.createElement('button');
+            next.textContent='❯';
+            next.style.cssText=`
+                position:absolute;
+                right:15px;
+                top:50%;
+                font-size:30px;
+                color:white;
+                background:none;
+                border:none;
+                cursor:pointer;
+            `;
+
+            const counter=document.createElement('p');
+            counter.style.cssText=`
+                position:absolute;
+                bottom:15px;
+                color:white;
+                font-size:16px;
+            `;
+
+            function updatePhoto(){
+                bigImage.src=ad.photoUrls[currentIndex];
+                counter.textContent=
+                    (currentIndex+1)+' / '+ad.photoUrls.length;
+            }
+
+            function closeGallery(){
+                document.removeEventListener('keydown',handleKeys);
+                overlay.remove();
+            }
+
+            function handleKeys(e){
+                if(e.key==='Escape')closeGallery();
+                if(e.key==='ArrowRight')showNext();
+                if(e.key==='ArrowLeft')showPrevious();
+            }
+
+            function showNext(){
+                currentIndex=(currentIndex+1)%ad.photoUrls.length;
+                updatePhoto();
+            }
+
+            function showPrevious(){
+                currentIndex=
+                    (currentIndex-1+ad.photoUrls.length)%ad.photoUrls.length;
+                updatePhoto();
+            }
+
+            close.onclick=closeGallery;
+            next.onclick=showNext;
+            previous.onclick=showPrevious;
+
+            overlay.addEventListener('click',e=>{
+                if(e.target===overlay)closeGallery();
+            });
+
+            overlay.append(previous,bigImage,next,close,counter);
+            document.body.append(overlay);
+
+            updatePhoto();
+            document.addEventListener('keydown',handleKeys);
+        });
+
+        gallery.append(img);
+    });
+
+    // Video
+    if(ad.videoUrl){
+        const v=document.createElement('video');
+        v.src=ad.videoUrl;
+        v.controls=true;
+        gallery.append(v);
+    }
+
+    const info=document.createElement('div');
+    info.className='detail-info';
+
+    const lines=[
+        ['Monthly Rent','Rs. '+Number(ad.rent).toLocaleString('en-LK')],
+        ['Room Type',ad.roomType],
+        ['Vacancies',ad.vacancies],
+        ['Landlord',ad.landlord],
+        ['Contact',ad.phone],
+        ['Location',ad.location]
+    ];
+
+    lines.forEach(([k,v])=>{
+        const p=document.createElement('p');
+        p.textContent=k+': '+v;
+        info.append(p);
+    });
+
+    const description=document.createElement('p');
+    description.textContent=ad.description;
+    info.append(description);
+
+    addContactLinks(ad,info);
+
+    if(ad.mapLink){
+        const map=document.createElement('a');
+        map.className='contact-link call-link';
+        map.href=ad.mapLink;
+        map.target='_blank';
+        map.rel='noopener';
+        map.textContent='Open location in Google Maps';
+        info.append(map);
+    }
+
+    root.append(title,loc,gallery,info);
+
+    $('home').hidden=true;
+    $('postAd').hidden=true;
+    $('adminSection').hidden=true;
+    $('myAdsSection').hidden=true;
+    $('find-boarding').hidden=true;
+    $('detailPage').style.display='block';
+
+    history.pushState({detail:id},'', '#details-'+id);
+    window.scrollTo(0,0);
+}
+
 function showHome(){mediaUrls.forEach(URL.revokeObjectURL);mediaUrls=[];$('detailPage').style.display='none';$('home').hidden=false;$('find-boarding').hidden=false;$('about').hidden=true;$('contactSection').hidden=true;$('adminSection').hidden=true;$('myAdsSection').hidden=true;$('postAd').style.display='none';window.scrollTo(0,0)}
 async function renderApproved(){ $('listingCards').innerHTML='';for(const ad of ads.filter(a=>a.status==='approved'))await makeCard(ad)}
 async function loadApprovedAds(){if(!sb){$('listingCards').innerHTML='';return}const {data,error}=await sb.from('boarding_ads').select('*').eq('status','approved').order('created_at',{ascending:false});if(error){console.error('Could not load approved ads:',error);$('noResults').hidden=false;$('noResults').textContent='Could not load boarding places. Please refresh the page.';return}ads=(data||[]).map(rowToAd);await renderApproved();$('noResults').hidden=ads.length>0}
