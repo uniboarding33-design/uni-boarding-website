@@ -43,7 +43,7 @@ main{padding:32px 6%;max-width:1500px;margin:auto}.section-head{display:flex;jus
  <div><div class="logo">Uni Boarding</div><div class="tagline">For students By students</div></div>
  <nav>
   <a href="#home" id="homeLink">Home</a><a href="#about" id="aboutLink">About Us</a><button type="button" id="contactLink" class="secondary">Contact Us</button>
-  <button type="button" id="postBtn">Post a Boarding Ad</button><button type="button" id="adminNavBtn" class="secondary" style="display:none">Admin Dashboard</button><button type="button" id="logoutNavBtn" class="secondary" style="display:none">Logout</button>
+  <button type="button" id="postBtn">Post a Boarding Ad</button><button type="button" id="myAdsNavBtn" class="secondary" style="display:none">My Advertisements</button><button type="button" id="adminNavBtn" class="secondary" style="display:none">Admin Dashboard</button><button type="button" id="logoutNavBtn" class="secondary" style="display:none">Logout</button>
  </nav>
 </header>
 <section class="hero" id="home">
@@ -76,6 +76,12 @@ main{padding:32px 6%;max-width:1500px;margin:auto}.section-head{display:flex;jus
 </section>
 <section class="pending-wrap" id="adminSection" hidden>
  <h2>Admin Dashboard</h2><p class="hint">Review advertisements submitted by landlords. Only pending advertisements appear here.</p><div class="form-actions"><button type="button" class="secondary" id="refreshAdminBtn">Refresh</button></div><p id="adminMessage" class="hint" role="status"></p><div id="pendingList"></div>
+</section>
+<section class="pending-wrap" id="myAdsSection" hidden>
+ <h2>My Advertisements</h2>
+ <p class="hint">View and manage only the advertisements submitted from your account. Editing an advertisement sends it for administrator review again.</p>
+ <div class="form-actions"><button type="button" class="secondary" id="refreshMyAdsBtn">Refresh</button><button type="button" class="secondary" id="myAdsBackBtn">Back to Home</button></div>
+ <p id="myAdsMessage" class="hint" role="status"></p><div id="myAdsList"></div>
 </section>
 <main id="find-boarding">
  <div class="section-head"><div><h2>Latest Boarding Places</h2><p>For Ruhuna Engineering Students</p></div></div>
@@ -142,6 +148,27 @@ main{padding:32px 6%;max-width:1500px;margin:auto}.section-head{display:flex;jus
  </div>
 </div>
 
+<div id="editAdModal" style="display:none;position:fixed;inset:0;background:#0b1b32cc;z-index:10001;align-items:center;justify-content:center;padding:16px;overflow:auto">
+ <div style="background:white;width:min(100%,650px);max-height:94vh;overflow:auto;padding:24px;border-radius:14px;box-shadow:0 20px 60px #0003">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0">Edit Advertisement</h2><button type="button" id="editAdClose" class="secondary">Close</button></div>
+  <p class="hint">After saving changes, this advertisement will return to Pending approval. Existing photos and video will remain unchanged.</p>
+  <form id="editAdForm" style="display:grid;gap:9px;margin-top:12px">
+   <input id="editAdId" type="hidden">
+   <label for="editLandlord">Landlord Name *</label><input id="editLandlord" required>
+   <label for="editPlace">Boarding Place Name *</label><input id="editPlace" required>
+   <label for="editLocation">Property Location / Address *</label><input id="editLocation" required>
+   <label for="editMapLink">Google Maps link (optional)</label><input id="editMapLink" type="url">
+   <label for="editRoomType">Room Type *</label><select id="editRoomType" required><option>Shared Room</option><option>Single Room</option><option>Annex</option><option>Full House</option></select>
+   <label for="editRent">Monthly Rent (Rs.) *</label><input id="editRent" type="number" min="1" required>
+   <label for="editVacancies">Available Vacancies *</label><input id="editVacancies" type="number" min="1" required>
+   <label for="editPhone">Contact Number *</label><input id="editPhone" type="tel" required>
+   <label for="editWhatsapp">WhatsApp Number (optional)</label><input id="editWhatsapp" type="tel">
+   <label for="editDescription">Boarding Description *</label><textarea id="editDescription" required style="width:100%;min-height:100px;padding:12px;border:1px solid #cbd5e1;border-radius:7px;font:inherit"></textarea>
+   <div class="form-actions"><button id="saveAdChangesBtn" type="submit">Save Changes</button><button type="button" class="secondary" id="cancelEditAdBtn">Cancel</button></div>
+  </form>
+ </div>
+</div>
+
 <div id="adminAuthModal" style="display:none;position:fixed;inset:0;background:#0b1b32cc;z-index:10000;align-items:center;justify-content:center;padding:16px">
  <div style="background:white;width:min(100%,420px);padding:24px;border-radius:14px;box-shadow:0 20px 60px #0003">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0">Admin Login</h2><button type="button" id="adminAuthClose" class="secondary">Close</button></div>
@@ -164,8 +191,8 @@ function addContactLinks(ad,parent){const phone=cleanPhone(ad.phone),wa=cleanPho
 async function makeCard(ad){const card=document.createElement('article');card.className='card';card.dataset.location=(ad.location||'').toLowerCase();card.dataset.type=ad.roomType;card.dataset.price=ad.rent;
  if(ad.photoUrls[0]){const img=document.createElement('img');img.src=ad.photoUrls[0];img.alt='Boarding place';card.append(img)}else{const blank=document.createElement('div');blank.style.cssText='height:190px;background:#e8edf5;display:grid;place-items:center;color:#64748b';blank.textContent='No photo added';card.append(blank)}
  const c=document.createElement('div');c.className='card-content';c.innerHTML='<span class="badge">Approved Listing</span>';const h=document.createElement('h3');h.textContent=ad.place;const loc=document.createElement('p');loc.className='location';loc.textContent=ad.location;const desc=document.createElement('p');desc.textContent=ad.roomType+' · Vacancies: '+ad.vacancies;const price=document.createElement('div');price.className='price';price.textContent='Rs. '+Number(ad.rent).toLocaleString('en-LK')+' / month';const view=document.createElement('button');view.className='details';view.textContent='View Details';view.onclick=()=>showDetails(ad.id);c.append(h,loc,desc,price,view);card.append(c);$('listingCards').append(card)}
-async function showDetails(id){const ad=ads.find(x=>x.id===String(id)&&x.status==='approved');if(!ad)return;mediaUrls.forEach(URL.revokeObjectURL);mediaUrls=[];const root=$('detailContent');root.innerHTML='';const title=document.createElement('h1');title.textContent=ad.place;const loc=document.createElement('p');loc.className='location';loc.textContent='Location: '+ad.location;const gallery=document.createElement('div');gallery.className='media-grid';ad.photoUrls.forEach((url,i)=>{const img=document.createElement('img');img.src=url;img.alt='Boarding photo '+(i+1);gallery.append(img)});if(ad.videoUrl){const v=document.createElement('video');v.src=ad.videoUrl;v.controls=true;gallery.append(v)}const info=document.createElement('div');info.className='detail-info';const lines=[['Monthly Rent','Rs. '+Number(ad.rent).toLocaleString('en-LK')],['Room Type',ad.roomType],['Vacancies',ad.vacancies],['Landlord',ad.landlord],['Contact',ad.phone],['Location',ad.location]];lines.forEach(([k,v])=>{const p=document.createElement('p');p.textContent=k+': '+v;info.append(p)});const description=document.createElement('p');description.textContent=ad.description;info.append(description);addContactLinks(ad,info);if(ad.mapLink){const map=document.createElement('a');map.className='contact-link call-link';map.href=ad.mapLink;map.target='_blank';map.rel='noopener';map.textContent='Open location in Google Maps';info.append(map)}root.append(title,loc,gallery,info);$('home').hidden=true;$('postAd').hidden=true;$('adminSection').hidden=true;$('find-boarding').hidden=true;$('detailPage').style.display='block';history.pushState({detail:id},'', '#details-'+id);window.scrollTo(0,0)}
-function showHome(){mediaUrls.forEach(URL.revokeObjectURL);mediaUrls=[];$('detailPage').style.display='none';$('home').hidden=false;$('find-boarding').hidden=false;$('about').hidden=true;$('contactSection').hidden=true;$('adminSection').hidden=true;$('postAd').style.display='none';window.scrollTo(0,0)}
+async function showDetails(id){const ad=ads.find(x=>x.id===String(id)&&x.status==='approved');if(!ad)return;mediaUrls.forEach(URL.revokeObjectURL);mediaUrls=[];const root=$('detailContent');root.innerHTML='';const title=document.createElement('h1');title.textContent=ad.place;const loc=document.createElement('p');loc.className='location';loc.textContent='Location: '+ad.location;const gallery=document.createElement('div');gallery.className='media-grid';ad.photoUrls.forEach((url,i)=>{const img=document.createElement('img');img.src=url;img.alt='Boarding photo '+(i+1);gallery.append(img)});if(ad.videoUrl){const v=document.createElement('video');v.src=ad.videoUrl;v.controls=true;gallery.append(v)}const info=document.createElement('div');info.className='detail-info';const lines=[['Monthly Rent','Rs. '+Number(ad.rent).toLocaleString('en-LK')],['Room Type',ad.roomType],['Vacancies',ad.vacancies],['Landlord',ad.landlord],['Contact',ad.phone],['Location',ad.location]];lines.forEach(([k,v])=>{const p=document.createElement('p');p.textContent=k+': '+v;info.append(p)});const description=document.createElement('p');description.textContent=ad.description;info.append(description);addContactLinks(ad,info);if(ad.mapLink){const map=document.createElement('a');map.className='contact-link call-link';map.href=ad.mapLink;map.target='_blank';map.rel='noopener';map.textContent='Open location in Google Maps';info.append(map)}root.append(title,loc,gallery,info);$('home').hidden=true;$('postAd').hidden=true;$('adminSection').hidden=true;$('myAdsSection').hidden=true;$('find-boarding').hidden=true;$('detailPage').style.display='block';history.pushState({detail:id},'', '#details-'+id);window.scrollTo(0,0)}
+function showHome(){mediaUrls.forEach(URL.revokeObjectURL);mediaUrls=[];$('detailPage').style.display='none';$('home').hidden=false;$('find-boarding').hidden=false;$('about').hidden=true;$('contactSection').hidden=true;$('adminSection').hidden=true;$('myAdsSection').hidden=true;$('postAd').style.display='none';window.scrollTo(0,0)}
 async function renderApproved(){ $('listingCards').innerHTML='';for(const ad of ads.filter(a=>a.status==='approved'))await makeCard(ad)}
 async function loadApprovedAds(){if(!sb){$('listingCards').innerHTML='';return}const {data,error}=await sb.from('boarding_ads').select('*').eq('status','approved').order('created_at',{ascending:false});if(error){console.error('Could not load approved ads:',error);$('noResults').hidden=false;$('noResults').textContent='Could not load boarding places. Please refresh the page.';return}ads=(data||[]).map(rowToAd);await renderApproved();$('noResults').hidden=ads.length>0}
 function safeFileName(name){return name.normalize('NFKD').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100)||'upload'}
@@ -213,9 +240,10 @@ async function refreshAuth(){
   if(profileError)console.error('Could not read profile role:',profileError);
   currentRole=profile?.role||'';
   $('adminNavBtn').style.display=currentRole==='admin'?'inline-block':'none';
+  $('myAdsNavBtn').style.display=currentRole==='landlord'?'inline-block':'none';
   authMsg('Signed in as '+currentSession.user.email);
  } else {
-  $('adminNavBtn').style.display='none';
+  $('adminNavBtn').style.display='none';$('myAdsNavBtn').style.display='none';
  }
 }
 $('authClose').onclick=()=>{$('authModal').style.display='none'};$('showLogin').onclick=()=>setAuthMode('login');$('showSignup').onclick=()=>setAuthMode('signup');
@@ -223,6 +251,67 @@ $('authForm').addEventListener('submit',async e=>{e.preventDefault();if(!sb){aut
 async function doLogout(){if(!sb)return;const {error}=await sb.auth.signOut();if(error){authMsg(error.message);return}currentSession=null;await refreshAuth();$('authModal').style.display='none';alert('You have been logged out.')}
 $('logoutBtn').onclick=doLogout;$('logoutNavBtn').onclick=doLogout;
 if(sb)sb.auth.onAuthStateChange((_event,session)=>{currentSession=session;refreshAuth()});
+function showMyAdsSection(){
+ if(!sb||!currentSession){openAuth();return}
+ $('home').hidden=true;$('postAd').style.display='none';$('find-boarding').hidden=true;$('about').hidden=true;$('contactSection').hidden=true;$('detailPage').style.display='none';$('adminSection').hidden=true;$('myAdsSection').hidden=false;
+ loadMyAds();window.scrollTo(0,0);
+}
+async function loadMyAds(){
+ const root=$('myAdsList'),msg=$('myAdsMessage');root.innerHTML='';msg.textContent='Loading your advertisements…';
+ const {data:sessionData,error:sessionError}=await sb.auth.getSession();
+ if(sessionError||!sessionData.session){msg.textContent='Your session has expired. Please log in again.';return}
+ currentSession=sessionData.session;
+ const {data,error}=await sb.from('boarding_ads').select('*').eq('owner_id',currentSession.user.id).order('created_at',{ascending:false});
+ if(error){msg.textContent='Could not load your advertisements: '+error.message;return}
+ if(!data||!data.length){msg.textContent='You have not posted any advertisements yet.';return}
+ msg.textContent='Your advertisements: '+data.length;
+ data.forEach(row=>{
+  const ad=rowToAd(row),box=document.createElement('article');box.className='pending-card';
+  const h=document.createElement('h3');h.textContent=ad.place;
+  const status=document.createElement('span');status.className='badge';status.textContent=ad.status==='approved'?'Approved':ad.status==='rejected'?'Rejected':'Pending approval';
+  if(ad.status==='rejected'){status.style.color='#b42318';status.style.background='#fee4e2'}
+  const details=document.createElement('p');details.textContent='Location: '+ad.location+' | Rent: Rs. '+Number(ad.rent).toLocaleString('en-LK')+' | Vacancies: '+ad.vacancies;
+  const desc=document.createElement('p');desc.textContent=ad.description;
+  box.append(h,status,details,desc);
+  const media=document.createElement('div');media.className='media-grid';ad.photoUrls.forEach(url=>{const im=document.createElement('img');im.src=url;im.alt='Your advertisement photo';media.append(im)});if(ad.videoUrl){const v=document.createElement('video');v.src=ad.videoUrl;v.controls=true;media.append(v)}if(media.childNodes.length)box.append(media);
+  const actions=document.createElement('div');actions.className='form-actions';
+  const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.onclick=()=>openEditAd(row);
+  const del=document.createElement('button');del.type='button';del.className='danger';del.textContent='Delete';del.onclick=()=>deleteMyAd(row);
+  actions.append(edit,del);box.append(actions);root.append(box);
+ });
+}
+function openEditAd(row){
+ $('editAdId').value=row.id;$('editLandlord').value=row.landlord_name||'';$('editPlace').value=row.title||'';$('editLocation').value=row.location||'';$('editMapLink').value=row.map_link||'';$('editRoomType').value=row.property_type||'Shared Room';$('editRent').value=row.price??'';$('editVacancies').value=row.vacancies??'';$('editPhone').value=row.contact_phone||'';$('editWhatsapp').value=row.whatsapp||'';$('editDescription').value=row.description||'';$('editAdModal').style.display='flex';
+}
+function closeEditAd(){$('editAdModal').style.display='none';$('editAdForm').reset()}
+$('editAdClose').onclick=closeEditAd;$('cancelEditAdBtn').onclick=closeEditAd;
+$('editAdForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!currentSession){alert('Please log in again.');return}
+ const btn=$('saveAdChangesBtn');btn.disabled=true;btn.textContent='Saving…';
+ try{
+  const adId=$('editAdId').value;
+  const changes={landlord_name:$('editLandlord').value.trim(),title:$('editPlace').value.trim(),location:$('editLocation').value.trim(),address:$('editLocation').value.trim(),map_link:$('editMapLink').value.trim()||null,property_type:$('editRoomType').value,price:Number($('editRent').value),vacancies:Number($('editVacancies').value),contact_phone:$('editPhone').value.trim(),whatsapp:$('editWhatsapp').value.trim()||null,description:$('editDescription').value.trim(),status:'pending'};
+  const {data,error}=await sb.from('boarding_ads').update(changes).eq('id',adId).eq('owner_id',currentSession.user.id).select('id');
+  if(error)throw error;if(!data||!data.length)throw new Error('No advertisement was changed. Check that this advertisement belongs to your account and that the database permissions allow owner updates.');
+  closeEditAd();alert('Changes saved. Your advertisement is now waiting for administrator approval.');await loadMyAds();await loadApprovedAds();
+ }catch(err){alert('Could not save changes: '+(err.message||'Please try again.'))}finally{btn.disabled=false;btn.textContent='Save Changes'}
+});
+async function deleteMyAd(row){
+ if(!currentSession)return;
+ if(!confirm('Are you sure you want to permanently delete this advertisement?'))return;
+ try{
+  const {data,error}=await sb.from('boarding_ads').delete().eq('id',row.id).eq('owner_id',currentSession.user.id).select('id');
+  if(error)throw error;if(!data||!data.length)throw new Error('No advertisement was deleted. Check that this advertisement belongs to your account and that the database permissions allow owner deletion.');
+  const paths=[];const prefix='/storage/v1/object/public/'+STORAGE_BUCKET+'/';
+  for(const url of [...(row.photo_urls||[]),row.video_url].filter(Boolean)){try{const u=new URL(url);const i=u.pathname.indexOf(prefix);if(i>=0)paths.push(decodeURIComponent(u.pathname.slice(i+prefix.length)))}catch(_){}}
+  if(paths.length){const {error:storageError}=await sb.storage.from(STORAGE_BUCKET).remove(paths);if(storageError)console.warn('Advertisement deleted, but some media files could not be removed:',storageError.message)}
+  alert('Advertisement deleted successfully.');await loadMyAds();await loadApprovedAds();
+ }catch(err){alert('Could not delete advertisement: '+(err.message||'Please try again.'))}
+}
+$('myAdsNavBtn').addEventListener('click',showMyAdsSection);
+$('refreshMyAdsBtn').addEventListener('click',loadMyAds);
+$('myAdsBackBtn').addEventListener('click',showHome);
+
 function openAdminLogin(){
  if(!sb||!currentSession){alert('Please log in with your administrator account first.');return}
  $('adminAuthEmail').value=currentSession.user.email||'';
@@ -263,7 +352,7 @@ async function showAdminDashboard(){
 }
 async function showAdminDashboardVerified(){
  $('home').hidden=true;$('postAd').style.display='none';$('find-boarding').hidden=true;$('about').hidden=true;$('contactSection').hidden=true;$('detailPage').style.display='none';
- $('adminSection').hidden=false;
+ $('myAdsSection').hidden=true;$('adminSection').hidden=false;
  await loadPendingAds();
  window.scrollTo(0,0);
 }
@@ -301,7 +390,7 @@ function showPostForm(session){
  const meta=session?.user?.user_metadata||{};
  $('landlord').value=meta.full_name||$('landlord').value;
  $('phone').value=meta.phone||$('phone').value;
- $('home').hidden=true;$('find-boarding').hidden=true;$('about').hidden=true;$('contactSection').hidden=true;$('detailPage').style.display='none';$('adminSection').hidden=true;
+ $('home').hidden=true;$('find-boarding').hidden=true;$('about').hidden=true;$('contactSection').hidden=true;$('detailPage').style.display='none';$('adminSection').hidden=true;$('myAdsSection').hidden=true;
  $('postAd').hidden=false;$('postAd').style.display='block';$('postAd').scrollIntoView({behavior:'smooth',block:'start'});
 }
 let openingPost=false;
@@ -315,7 +404,7 @@ $('postBtn').addEventListener('click',async()=>{
  }catch(err){alert('Could not open the advertisement form. Please try again. '+(err.message||''))}
  finally{openingPost=false;btn.disabled=false}
 });
-function showInfoSection(section){$('home').hidden=true;$('postAd').style.display='none';$('adminSection').hidden=true;$('find-boarding').hidden=true;$('detailPage').style.display='none';$('about').hidden=true;$('contactSection').hidden=true;$(section).hidden=false;history.replaceState(null,'',section==='about'?'#about':'#contact');window.scrollTo(0,0)}
+function showInfoSection(section){$('home').hidden=true;$('postAd').style.display='none';$('adminSection').hidden=true;$('myAdsSection').hidden=true;$('find-boarding').hidden=true;$('detailPage').style.display='none';$('about').hidden=true;$('contactSection').hidden=true;$(section).hidden=false;history.replaceState(null,'',section==='about'?'#about':'#contact');window.scrollTo(0,0)}
 $('aboutLink').onclick=e=>{e.preventDefault();showInfoSection('about')};
 $('contactLink').onclick=e=>{e.preventDefault();showInfoSection('contactSection')};
 $('aboutBack').onclick=showHome;$('contactBack').onclick=showHome;
