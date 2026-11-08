@@ -186,7 +186,38 @@ const $=id=>document.getElementById(id);
 let ads=[], mediaUrls=[];
 const STORAGE_BUCKET='boarding-media';
 function cleanPhone(v){return(v||'').replace(/\D/g,'')}
-function rowToAd(row){return {id:String(row.id),dbId:row.id,landlord:row.landlord_name||'',place:row.title||'Boarding Place',location:row.location||'',address:row.address||'',mapLink:row.map_link||'',roomType:row.property_type||'',rent:Number(row.price||0),vacancies:row.vacancies||'',phone:row.contact_phone||'',whatsapp:row.whatsapp||'',description:row.description||'',photoUrls:Array.isArray(row.photo_urls)?row.photo_urls:[],videoUrl:row.video_url||'',status:row.status||'pending'}}
+
+function rowToAd(row){
+    let photos = [];
+
+    try {
+        photos = Array.isArray(row.photo_urls)
+            ? row.photo_urls
+            : JSON.parse(row.photo_urls || '[]');
+    } catch (error) {
+        console.error('Could not read photo URLs:', error);
+    }
+
+    return {
+        id: String(row.id),
+        dbId: row.id,
+        landlord: row.landlord_name || '',
+        place: row.title || 'Boarding Place',
+        location: row.location || '',
+        address: row.address || '',
+        mapLink: row.map_link || '',
+        roomType: row.property_type || '',
+        rent: Number(row.price || 0),
+        vacancies: row.vacancies || '',
+        phone: row.contact_phone || '',
+        whatsapp: row.whatsapp || '',
+        description: row.description || '',
+        photoUrls: photos,
+        videoUrl: row.video_url || '',
+        status: row.status || 'pending'
+    };
+}
+
 function addContactLinks(ad,parent){const phone=cleanPhone(ad.phone),wa=cleanPhone(ad.whatsapp);if(phone){const a=document.createElement('a');a.className='contact-link call-link';a.href='tel:'+phone;a.textContent='Call landlord';parent.append(a)}if(wa){const a=document.createElement('a');a.className='contact-link';a.href='https://wa.me/'+wa;a.target='_blank';a.rel='noopener';a.textContent='WhatsApp';parent.append(a)}}
 async function makeCard(ad){const card=document.createElement('article');card.className='card';card.dataset.location=(ad.location||'').toLowerCase();card.dataset.type=ad.roomType;card.dataset.price=ad.rent;
  if(ad.photoUrls[0]){const img=document.createElement('img');img.src=ad.photoUrls[0];img.alt='Boarding place';card.append(img)}else{const blank=document.createElement('div');blank.style.cssText='height:190px;background:#e8edf5;display:grid;place-items:center;color:#64748b';blank.textContent='No photo added';card.append(blank)}
