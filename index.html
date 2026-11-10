@@ -214,8 +214,16 @@ function rowToAd(row){
         description: row.description || '',
         photoUrls: photos,
         videoUrl: row.video_url || '',
-        status: row.status || 'pending'
+        status: row.status || 'pending',
+        lastEditedAt: row.last_edited_at || null
     };
+}
+
+function formatAdDate(value){
+ if(!value)return 'Not available';
+ const date=new Date(value);
+ if(Number.isNaN(date.getTime()))return 'Not available';
+ return date.toLocaleString('en-LK',{dateStyle:'medium',timeStyle:'short'});
 }
 
 function addContactLinks(ad,parent){const phone=cleanPhone(ad.phone),wa=cleanPhone(ad.whatsapp);if(phone){const a=document.createElement('a');a.className='contact-link call-link';a.href='tel:'+phone;a.textContent='Call landlord';parent.append(a)}if(wa){const a=document.createElement('a');a.className='contact-link';a.href='https://wa.me/'+wa;a.target='_blank';a.rel='noopener';a.textContent='WhatsApp';parent.append(a)}}
@@ -496,11 +504,15 @@ async function loadMyAds(){
  data.forEach(row=>{
   const ad=rowToAd(row),box=document.createElement('article');box.className='pending-card';
   const h=document.createElement('h3');h.textContent=ad.place;
-  const status=document.createElement('span');status.className='badge';status.textContent=ad.status==='approved'?'Approved':ad.status==='rejected'?'Rejected':'Pending approval';
+  const status=document.createElement('span');status.className='badge';
+  status.textContent=ad.status==='approved'?'Approved':ad.status==='rejected'?'Rejected':(ad.lastEditedAt?'Edited – Pending Approval':'Pending approval');
   if(ad.status==='rejected'){status.style.color='#b42318';status.style.background='#fee4e2'}
+  if(ad.status==='pending'&&ad.lastEditedAt){status.style.color='#854d0e';status.style.background='#fef3c7'}
+  const dates=document.createElement('p');dates.className='hint';
+  dates.textContent='Originally posted: '+formatAdDate(row.created_at)+(ad.lastEditedAt?' | Last edited: '+formatAdDate(ad.lastEditedAt):'');
   const details=document.createElement('p');details.textContent='Location: '+ad.location+' | Rent: Rs. '+Number(ad.rent).toLocaleString('en-LK')+' | Vacancies: '+ad.vacancies;
   const desc=document.createElement('p');desc.textContent=ad.description;
-  box.append(h,status,details,desc);
+  box.append(h,status,dates,details,desc);
   const media=document.createElement('div');media.className='media-grid';ad.photoUrls.forEach(url=>{const im=document.createElement('img');im.src=url;im.alt='Your advertisement photo';media.append(im)});if(ad.videoUrl){const v=document.createElement('video');v.src=ad.videoUrl;v.controls=true;media.append(v)}if(media.childNodes.length)box.append(media);
   const actions=document.createElement('div');actions.className='form-actions';
   const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.onclick=()=>openEditAd(row);
@@ -592,9 +604,14 @@ async function loadPendingAds(){
  data.forEach(row=>{
   const ad=rowToAd(row),box=document.createElement('article');box.className='pending-card';
   const h=document.createElement('h3');h.textContent=ad.place;
+  const status=document.createElement('span');status.className='badge';
+  status.textContent=ad.lastEditedAt?'Edited – Pending Approval':'Pending Approval';
+  if(ad.lastEditedAt){status.style.color='#854d0e';status.style.background='#fef3c7'}
+  const dates=document.createElement('p');dates.className='hint';
+  dates.textContent='Originally posted: '+formatAdDate(row.created_at)+(ad.lastEditedAt?' | Last edited: '+formatAdDate(ad.lastEditedAt):'');
   const details=document.createElement('p');details.textContent='Location: '+ad.location+' | Rent: Rs. '+Number(ad.rent).toLocaleString('en-LK')+' | Landlord: '+ad.landlord+' | Contact: '+ad.phone;
   const desc=document.createElement('p');desc.textContent=ad.description;
-  box.append(h,details,desc);
+  box.append(h,status,dates,details,desc);
   const media=document.createElement('div');media.className='media-grid';
   ad.photoUrls.forEach(url=>{const im=document.createElement('img');im.src=url;im.alt='Boarding advertisement photo';media.append(im)});
   if(ad.videoUrl){const v=document.createElement('video');v.src=ad.videoUrl;v.controls=true;media.append(v)}
