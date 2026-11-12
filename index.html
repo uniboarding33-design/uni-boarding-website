@@ -42,7 +42,7 @@ main{padding:32px 6%;max-width:1500px;margin:auto}.section-head{display:flex;jus
 <header>
  <div><div class="logo">Uni Boarding</div><div class="tagline">For students By students</div></div>
  <nav>
-  <a href="#home" id="homeLink">Home</a><a href="#about" id="aboutLink">About Us</a><button type="button" id="contactLink" class="secondary">Contact Us</button>
+  <a href="#home" id="homeLink">Home</a><a href="#about" id="aboutLink">About Us</a><button type="button" id="helpLandlordsBtn" class="secondary">Help for Landlords</button><button type="button" id="contactLink" class="secondary">Contact Us</button>
   <button type="button" id="postBtn">Post a Boarding Ad</button><button type="button" id="myAdsNavBtn" class="secondary" style="display:none">My Advertisements</button><button type="button" id="adminNavBtn" class="secondary" style="display:none">Admin Dashboard</button><button type="button" id="logoutNavBtn" class="secondary" style="display:none">Logout</button>
  </nav>
 </header>
@@ -75,7 +75,7 @@ main{padding:32px 6%;max-width:1500px;margin:auto}.section-head{display:flex;jus
  </form></div>
 </section>
 <section class="pending-wrap" id="adminSection" hidden>
- <h2>Admin Dashboard</h2><p class="hint">Review advertisements submitted by landlords. Only pending advertisements appear here.</p><div class="form-actions"><button type="button" class="secondary" id="refreshAdminBtn">Refresh</button></div><p id="adminMessage" class="hint" role="status"></p><div id="pendingList"></div>
+ <h2>Admin Dashboard</h2><p class="hint">Review pending advertisements and manage approved advertisements.</p><div class="form-actions"><button type="button" class="secondary" id="refreshAdminBtn">Refresh</button><button type="button" class="secondary" id="adminBackBtn">Back to Home</button></div><p id="adminMessage" class="hint" role="status"></p><h3>Pending Advertisements</h3><div id="pendingList"></div><h3 style="margin-top:30px">Approved Advertisements</h3><p class="hint">You can permanently delete an approved advertisement if necessary.</p><div id="approvedAdminList"></div>
 </section>
 <section class="pending-wrap" id="myAdsSection" hidden>
  <h2>My Advertisements</h2>
@@ -131,6 +131,24 @@ main{padding:32px 6%;max-width:1500px;margin:auto}.section-head{display:flex;jus
  <div class="detail-box" style="margin-top:16px"><div id="detailContent"></div></div>
 </section>
 <footer><strong>Uni Boarding</strong><br>For students By students<br>Helping Ruhuna Engineering students find a place to stay.</footer>
+
+<div id="landlordHelpModal" style="display:none;position:fixed;inset:0;background:#0b1b32aa;z-index:9998;align-items:center;justify-content:center;padding:16px;overflow:auto">
+ <div style="background:white;width:min(100%,680px);max-height:92vh;overflow:auto;padding:24px;border-radius:14px;box-shadow:0 20px 60px #0003">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0">Help for Landlords</h2><button type="button" id="helpLandlordsClose" class="secondary">Close</button></div>
+  <p class="hint">Follow these steps to create an account and advertise your boarding place.</p>
+  <ol style="line-height:1.75;padding-left:22px">
+   <li><strong>Open the registration form:</strong> Click <em>Post a Boarding Ad</em>, then choose <em>Register</em>.</li>
+   <li><strong>Enter your details:</strong> Provide your full name, phone number, email address and a password of at least 8 characters. Confirm your password.</li>
+   <li><strong>Verify your email:</strong> Open the verification email sent to you and follow its link. Check your spam folder if it does not arrive.</li>
+   <li><strong>Log in:</strong> Return to Uni Boarding and sign in using your registered email address and password.</li>
+   <li><strong>Complete your advertisement:</strong> Enter the boarding place name, location, room type, monthly rent, vacancies, contact details and description. Add photos and an optional video.</li>
+   <li><strong>Submit for review:</strong> Click <em>Submit Advertisement</em>. Your advertisement will remain pending until an administrator reviews it.</li>
+   <li><strong>Manage your advertisement:</strong> Use <em>My Advertisements</em> to view your submissions. You can edit or delete your own advertisements. Edited advertisements are sent for approval again.</li>
+  </ol>
+  <p class="hint"><strong>Need help?</strong> Contact an administrator through the Contact Us section. Never share your password or verification code with anyone.</p>
+  <div class="form-actions"><button type="button" id="helpStartRegisterBtn">Register / Login</button><button type="button" class="secondary" id="helpLandlordsClose2">Close</button></div>
+ </div>
+</div>
 
 <div id="authModal" style="display:none;position:fixed;inset:0;background:#0b1b32aa;z-index:9999;align-items:center;justify-content:center;padding:16px">
  <div style="background:white;width:min(100%,460px);padding:24px;border-radius:14px;box-shadow:0 20px 60px #0003">
@@ -593,13 +611,17 @@ async function showAdminDashboard(){
 async function showAdminDashboardVerified(){
  $('home').hidden=true;$('postAd').style.display='none';$('find-boarding').hidden=true;$('about').hidden=true;$('contactSection').hidden=true;$('detailPage').style.display='none';
  $('myAdsSection').hidden=true;$('adminSection').hidden=false;
- await loadPendingAds();
+ await refreshAdminDashboard();
  window.scrollTo(0,0);
+}
+async function refreshAdminDashboard(){
+ await loadPendingAds();
+ await loadApprovedAdminAds();
 }
 async function loadPendingAds(){
  const root=$('pendingList'),msg=$('adminMessage');root.innerHTML='';msg.textContent='Loading pending advertisements…';
  const {data,error}=await sb.from('boarding_ads').select('*').eq('status','pending').order('created_at',{ascending:false});
- if(error){msg.textContent='Could not load advertisements: '+error.message;return}
+ if(error){msg.textContent='Could not load pending advertisements: '+error.message;return}
  msg.textContent=data.length?('Pending advertisements: '+data.length):'There are no advertisements waiting for approval.';
  data.forEach(row=>{
   const ad=rowToAd(row),box=document.createElement('article');box.className='pending-card';
@@ -619,17 +641,62 @@ async function loadPendingAds(){
   const actions=document.createElement('div');actions.className='form-actions';
   const approve=document.createElement('button');approve.type='button';approve.textContent='Approve';approve.onclick=()=>reviewAdvertisement(row.id,'approve');
   const reject=document.createElement('button');reject.type='button';reject.className='danger';reject.textContent='Reject';reject.onclick=()=>{const note=prompt('Reason for rejection (optional):')||'';reviewAdvertisement(row.id,'reject',note)};
-  actions.append(approve,reject);box.append(actions);root.append(box);
+  const del=document.createElement('button');del.type='button';del.className='danger';del.textContent='Delete';del.onclick=()=>deleteAdminAd(row);
+  actions.append(approve,reject,del);box.append(actions);root.append(box);
  });
+}
+async function loadApprovedAdminAds(){
+ const root=$('approvedAdminList');root.innerHTML='<p class="hint">Loading approved advertisements…</p>';
+ const {data,error}=await sb.from('boarding_ads').select('*').eq('status','approved').order('created_at',{ascending:false});
+ if(error){root.textContent='Could not load approved advertisements: '+error.message;return}
+ root.innerHTML='';
+ if(!data||!data.length){root.innerHTML='<p class="hint">There are no approved advertisements.</p>';return}
+ data.forEach(row=>{
+  const ad=rowToAd(row),box=document.createElement('article');box.className='pending-card';
+  const h=document.createElement('h3');h.textContent=ad.place;
+  const status=document.createElement('span');status.className='badge';status.textContent='Approved';
+  const details=document.createElement('p');details.className='hint';details.textContent='Location: '+ad.location+' | Rent: Rs. '+Number(ad.rent).toLocaleString('en-LK')+' | Landlord: '+ad.landlord+' | Contact: '+ad.phone;
+  const desc=document.createElement('p');desc.textContent=ad.description;
+  const actions=document.createElement('div');actions.className='form-actions';
+  const del=document.createElement('button');del.type='button';del.className='danger';del.textContent='Delete Advertisement';del.onclick=()=>deleteAdminAd(row);
+  box.append(h,status,details,desc,actions);actions.append(del);root.append(box);
+ });
+}
+function getAdStoragePaths(row){
+ const ad=rowToAd(row),prefix='/storage/v1/object/public/'+STORAGE_BUCKET+'/';
+ const paths=[];
+ for(const url of [...ad.photoUrls,ad.videoUrl].filter(Boolean)){
+  try{const u=new URL(url);const i=u.pathname.indexOf(prefix);if(i>=0)paths.push(decodeURIComponent(u.pathname.slice(i+prefix.length)))}catch(_){}
+ }
+ return [...new Set(paths)];
+}
+async function deleteAdminAd(row){
+ if(!currentSession||currentRole!=='admin'){alert('Administrator permission is required.');return}
+ if(!confirm('Permanently delete this advertisement? This cannot be undone.'))return;
+ try{
+  const {data,error}=await sb.from('boarding_ads').delete().eq('id',row.id).select('id');
+  if(error)throw error;
+  if(!data||!data.length)throw new Error('No advertisement was deleted. Check the administrator DELETE policy and your current administrator session.');
+  const paths=getAdStoragePaths(row);
+  let mediaWarning='';
+  if(paths.length){
+   const {error:storageError}=await sb.storage.from(STORAGE_BUCKET).remove(paths);
+   if(storageError){console.warn('Advertisement row deleted, but media cleanup failed:',storageError.message);mediaWarning=' The advertisement was deleted, but some photos/videos may remain in Storage and need administrator cleanup.'}
+  }
+  alert('Advertisement deleted successfully.'+mediaWarning);
+  await refreshAdminDashboard();
+  await loadApprovedAds();
+ }catch(err){alert('Could not delete advertisement: '+(err.message||'Please try again.'))}
 }
 async function reviewAdvertisement(adId,action,note=''){
  const {error}=await sb.rpc('admin_review_ad',{p_ad_id:adId,p_action:action,p_note:note||null});
  if(error){alert('Could not '+action+' advertisement: '+error.message);return}
  alert(action==='approve'?'Advertisement approved.':'Advertisement rejected.');
- await loadPendingAds();await loadApprovedAds();
+ await refreshAdminDashboard();await loadApprovedAds();
 }
 $('adminNavBtn').addEventListener('click',showAdminDashboard);
-$('refreshAdminBtn').addEventListener('click',loadPendingAds);
+$('refreshAdminBtn').addEventListener('click',refreshAdminDashboard);
+$('adminBackBtn').addEventListener('click',showHome);
 
 function showPostForm(session){
  const meta=session?.user?.user_metadata||{};
@@ -650,6 +717,11 @@ $('postBtn').addEventListener('click',async()=>{
  finally{openingPost=false;btn.disabled=false}
 });
 function showInfoSection(section){$('home').hidden=true;$('postAd').style.display='none';$('adminSection').hidden=true;$('myAdsSection').hidden=true;$('find-boarding').hidden=true;$('detailPage').style.display='none';$('about').hidden=true;$('contactSection').hidden=true;$(section).hidden=false;history.replaceState(null,'',section==='about'?'#about':'#contact');window.scrollTo(0,0)}
+$('helpLandlordsBtn').onclick=()=>{$('landlordHelpModal').style.display='flex'};
+$('helpLandlordsClose').onclick=()=>{$('landlordHelpModal').style.display='none'};
+$('helpLandlordsClose2').onclick=()=>{$('landlordHelpModal').style.display='none'};
+$('helpStartRegisterBtn').onclick=()=>{$('landlordHelpModal').style.display='none';openAuth();setAuthMode('signup')};
+$('landlordHelpModal').addEventListener('click',e=>{if(e.target===$('landlordHelpModal'))$('landlordHelpModal').style.display='none'});
 $('aboutLink').onclick=e=>{e.preventDefault();showInfoSection('about')};
 $('contactLink').onclick=e=>{e.preventDefault();showInfoSection('contactSection')};
 $('aboutBack').onclick=showHome;$('contactBack').onclick=showHome;
