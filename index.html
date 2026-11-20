@@ -943,44 +943,6 @@ async function reviewAdvertisement(adId, action, note = '') {
 
   await refreshAdminDashboard();
   await loadApprovedAds();
-}(adId, action, note = '') {
-  const { error } = await sb.rpc('admin_review_ad', {
-    p_ad_id: adId,
-    p_action: action,
-    p_note: note || null
-  });
-
-  if (error) {
-    alert('Could not ' + action + ' advertisement: ' + error.message);
-    return;
-  }
-
-  // The review is saved. Now notify the landlord.
-  const { error: notificationError } = await sb.functions.invoke(
-    'notify-new-ad',
-    {
-      body: {
-        action: 'status_update',
-        ad_id: adId
-      }
-    }
-  );
-
-  if (notificationError) {
-    console.error('Landlord email notification failed:', notificationError);
-    alert(
-      'Advertisement ' + action + 'd successfully, but the landlord email could not be sent. Please check the notification service.'
-    );
-  } else {
-    alert(
-      action === 'approve'
-        ? 'Advertisement approved. The landlord has been notified by email.'
-        : 'Advertisement rejected. The landlord has been notified by email.'
-    );
-  }
-
-  await refreshAdminDashboard();
-  await loadApprovedAds();
 }
 
 $('adminNavBtn').addEventListener('click',showAdminDashboard);
