@@ -69,7 +69,43 @@ main{padding:32px 6%;max-width:1500px;margin:auto}.section-head{display:flex;jus
  .rating-summary{font-size:14px;color:#475569;margin:8px 0}.rating-stars{color:#f59e0b;letter-spacing:2px;font-size:22px}.rating-panel{margin-top:22px;padding:18px;background:#f8fafc;border:1px solid #dbe3ee;border-radius:10px}.rating-buttons{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.rating-star{background:#e2e8f0;color:#64748b;padding:8px 12px;font-size:22px;line-height:1}.rating-star.selected{background:#fef3c7;color:#b45309}.rating-star:disabled{opacity:.7;cursor:default}
 [hidden]{display:none!important}
 @media(max-width:700px){.detail-layout{grid-template-columns:1fr}header{padding:14px 5%}main{padding:26px 5%}}
-</style></head>
+
+/* FAQ Section */
+.faq-section {
+  background: #ffffff;
+  padding: 28px;
+  margin: 30px 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px #0000000b;
+}
+
+.faq-section h2 {
+  color: var(--navy);
+  margin-top: 0;
+}
+
+.faq-item {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 15px 0;
+}
+
+.faq-item:last-child {
+  border-bottom: none;
+}
+
+.faq-item h3 {
+  font-size: 17px;
+  color: var(--blue);
+  margin: 0 0 8px;
+}
+
+.faq-item p {
+  color: #475569;
+  line-height: 1.7;
+  margin: 0;
+}
+
+ </style></head>
 <body>
 <header>
  <div><div class="logo">Uni Boarding</div><div class="tagline">For students By students</div></div>
@@ -127,6 +163,46 @@ main{padding:32px 6%;max-width:1500px;margin:auto}.section-head{display:flex;jus
  <div class="section-head"><div><h2>Latest Boarding Places</h2><p>For Ruhuna Engineering Students</p></div></div>
  <div class="listings" id="listingCards"></div><p id="noResults" hidden>No listings match your search. Try different filters.</p>
  
+<section class="faq-section" id="faq">
+  <h2>Frequently Asked Questions</h2>
+  <p>Find answers to common questions about student boarding near the University of Ruhuna.</p>
+
+  <div class="faq-item">
+    <h3>1. Where can I find student boarding near the University of Ruhuna?</h3>
+    <p>You can use Uni Boarding to find student accommodation near the Faculty of Engineering, University of Ruhuna, Hapugala. Browse available boarding places and compare their locations, monthly rent and facilities.</p>
+  </div>
+
+  <div class="faq-item">
+    <h3>2. How can I search for available boarding places?</h3>
+    <p>Visit the Uni Boarding homepage and use the search options to filter boarding advertisements by location, room type and monthly rent.</p>
+  </div>
+
+  <div class="faq-item">
+    <h3>3. What types of accommodation can I find?</h3>
+    <p>Uni Boarding allows students to explore different accommodation types, including shared rooms, single rooms, annexes and full houses.</p>
+  </div>
+
+  <div class="faq-item">
+    <h3>4. How can I contact a landlord?</h3>
+    <p>Open a boarding advertisement and view its details. You can contact the landlord using the available phone or WhatsApp contact options.</p>
+  </div>
+
+  <div class="faq-item">
+    <h3>5. How can landlords advertise their boarding places?</h3>
+    <p>Landlords can register an account, log in and select Post a Boarding Ad. They can submit accommodation details, monthly rent, vacancies, photos and contact information.</p>
+  </div>
+
+  <div class="faq-item">
+    <h3>6. Why is my boarding advertisement not visible?</h3>
+    <p>New advertisements must be reviewed and approved by an administrator before they appear in the available boarding listings.</p>
+  </div>
+
+  <div class="faq-item">
+    <h3>7. Is Uni Boarding designed for University of Ruhuna students?</h3>
+    <p>Yes. Uni Boarding is a student-oriented platform created to help University of Ruhuna Engineering students find suitable accommodation during their university life.</p>
+  </div>
+</section>
+
 </main>
 <section class="about-box" id="about" hidden>
 <h2>About Uni Boarding</h2>
